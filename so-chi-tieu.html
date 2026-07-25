@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sổ chi tiêu — Duy &amp; Nghĩa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EDF2E9;
+    --paper-line: #C9D9C0;
+    --paper-edge: #DCE7D5;
+    --ink: #1F3A2E;
+    --ink-soft: #4B5D4F;
+    --duy-ink: #2B4C7E;
+    --duy-bg: #E4EBF4;
+    --nghia-ink: #8B3A3A;
+    --nghia-bg: #F3E6E4;
+    --stamp: #A6742E;
+  }
+  * { box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: repeating-linear-gradient(
+      var(--paper),
+      var(--paper) 27px,
+      var(--paper-line) 28px
+    );
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: 'Courier Prime', monospace;
+    min-height: 100vh;
+    padding: 32px 16px 80px;
+  }
+  .page{
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  header.cover{
+    text-align:center;
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 3px double var(--ink);
+  }
+  header.cover .eyebrow{
+    letter-spacing: 3px;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  header.cover h1{
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 30px;
+    margin: 6px 0 4px;
+    letter-spacing: 0.5px;
+  }
+  header.cover .subtitle{
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .live-clock{
+    text-align:center;
+    margin-bottom: 18px;
+  }
+  .live-clock .clock-date{
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .live-clock .clock-time{
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 1px;
+  }
+  .month-nav{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .month-nav button{
+    background: none;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: 'Courier Prime', monospace;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .month-nav button:hover{ background: var(--paper-line); }
+  .month-nav .month-label{
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 18px;
+    min-width: 150px;
+    text-align:center;
+  }
+
+  .slip{
+    background: #fff;
+    border: 1px dashed var(--ink-soft);
+    border-radius: 4px;
+    padding: 18px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 6px rgba(31,58,46,0.08);
+  }
+  .slip .slip-title{
+    font-family:'Zilla Slab', serif;
+    font-weight:700;
+    font-size:14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  .photo-row{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .photo-preview{
+    width: 64px; height: 64px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--paper-line);
+    background: var(--paper);
+    flex-shrink:0;
+  }
+  .photo-placeholder{
+    width:64px; height:64px;
+    border-radius:4px;
+    border: 1px dashed var(--paper-line);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 22px;
+    color: var(--ink-soft);
+    flex-shrink:0;
+    background: var(--paper);
+  }
+  .btn-camera{
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-camera:hover{ opacity: 0.85; }
+  input[type="file"]{ display:none; }
+
+  .field{
+    margin-bottom: 12px;
+  }
+  .field label{
+    display:block;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .field input[type="text"], .field input[type="number"]{
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 4px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .field input:focus{
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+  }
+  .person-toggle{
+    display:flex;
+    gap: 10px;
+  }
+  .person-toggle label{
+    flex: 1;
+    text-align:center;
+    padding: 10px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--paper-line);
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink-soft);
+  }
+  .person-toggle input{ display:none; }
+  .person-toggle .opt-duy.active{
+    background: var(--duy-bg);
+    border-color: var(--duy-ink);
+    color: var(--duy-ink);
+  }
+  .person-toggle .opt-nghia.active{
+    background: var(--nghia-bg);
+    border-color: var(--nghia-ink);
+    color: var(--nghia-ink);
+  }
+
+  .btn-submit{
+    width: 100%;
+    padding: 12px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 4px;
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .btn-submit:hover{ opacity: 0.88; }
+  .btn-submit:disabled{ opacity: 0.4; cursor: not-allowed; }
+
+  .ledger-title{
+    font-family:'Zilla Slab', serif;
+    font-weight:700;
+    font-size:14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 10px 4px;
+  }
+  .ledger{
+    margin-bottom: 26px;
+  }
+  .ledger .empty{
+    text-align:center;
+    color: var(--ink-soft);
+    padding: 30px 10px;
+    font-style: italic;
+    font-size: 14px;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--paper-line);
+  }
+  .row .thumb{
+    width: 46px; height: 46px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--paper-line);
+    flex-shrink:0;
+    cursor: zoom-in;
+  }
+  .row .thumb-placeholder{
+    width:46px; height:46px;
+    border-radius:4px;
+    border: 1px dashed var(--paper-line);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 16px;
+    color: var(--ink-soft);
+    flex-shrink:0;
+  }
+  .row .info{
+    flex: 1;
+    min-width: 0;
+  }
+  .row .item-name{
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .row .date-tag{
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .row .price{
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .tag{
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .tag.duy{ background: var(--duy-bg); color: var(--duy-ink); }
+  .tag.nghia{ background: var(--nghia-bg); color: var(--nghia-ink); }
+  .row .del{
+    background:none;
+    border:none;
+    color: var(--ink-soft);
+    cursor:pointer;
+    font-size: 16px;
+    padding: 4px;
+    flex-shrink:0;
+  }
+  .row .del:hover{ color: var(--nghia-ink); }
+
+  .stamp-wrap{
+    display:flex;
+    justify-content:center;
+    margin: 30px 0 10px;
+  }
+  .stamp{
+    border: 3px solid var(--stamp);
+    border-radius: 8px;
+    color: var(--stamp);
+    padding: 16px 26px;
+    transform: rotate(-2deg);
+    text-align:center;
+    position: relative;
+  }
+  .stamp::before{
+    content: "TỔNG KẾT THÁNG";
+    display:block;
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .stamp .lines{
+    display:flex;
+    gap: 22px;
+  }
+  .stamp .lines div{
+    text-align:center;
+  }
+  .stamp .lines .who{
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+  }
+  .stamp .lines .amt{
+    font-family: 'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .stamp .grand{
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--stamp);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .lightbox{
+    position: fixed; inset:0;
+    background: rgba(31,58,46,0.85);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index: 100;
+    padding: 20px;
+    cursor: zoom-out;
+  }
+  .lightbox.show{ display:flex; }
+  .lightbox img{
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 6px;
+  }
+
+  footer.note{
+    text-align:center;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="cover">
+    <div class="eyebrow">Ghi chép mua sắm</div>
+    <h1>Sổ Chi Tiêu Chung</h1>
+    <div class="subtitle">Duy &amp; Nghĩa</div>
+  </header>
+
+  <div class="live-clock">
+    <div class="clock-time" id="clockTime">--:--:--</div>
+    <div class="clock-date" id="clockDate">-- -- --</div>
+  </div>
+
+  <div class="slip">
+    <div class="slip-title">Ghi khoản chi mới</div>
+
+    <div class="photo-row">
+      <img id="photoPreview" class="photo-preview" style="display:none;" alt="Ảnh đồ đã mua">
+      <div id="photoPlaceholder" class="photo-placeholder">📷</div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment">
+      <button class="btn-camera" id="btnCamera" type="button">Chụp / chọn ảnh</button>
+    </div>
+
+    <div class="field">
+      <label for="itemName">Tên đồ (không bắt buộc)</label>
+      <input type="text" id="itemName" placeholder="Vd: Cà phê, gạo, xăng xe...">
+    </div>
+
+    <div class="field">
+      <label for="itemPrice">Số tiền (đơn vị: nghìn ₫)</label>
+      <input type="number" id="itemPrice" placeholder="Vd: 50 = 50.000 ₫" min="0" inputmode="numeric">
+    </div>
+
+    <div class="field">
+      <label>Người chi</label>
+      <div class="person-toggle">
+        <label class="opt-duy active" id="labelDuy">
+          <input type="radio" name="person" value="Duy" checked> Duy
+        </label>
+        <label class="opt-nghia" id="labelNghia">
+          <input type="radio" name="person" value="Nghĩa"> Nghĩa
+        </label>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btnSubmit">Ghi vào sổ</button>
+  </div>
+
+  <div class="month-nav">
+    <button id="prevMonth" aria-label="Tháng trước">&#8592;</button>
+    <div class="month-label" id="monthLabel">Tháng 7 / 2026</div>
+    <button id="nextMonth" aria-label="Tháng sau">&#8594;</button>
+  </div>
+
+  <div class="ledger-title">Lịch sử chi tiêu</div>
+  <div class="ledger" id="ledger">
+    <!-- rows injected here -->
+  </div>
+
+  <div class="stamp-wrap" id="stampWrap"></div>
+
+  <footer class="note">Dữ liệu được lưu tự động trên trình duyệt này. Ảnh được nén nhỏ để tiết kiệm dung lượng.</footer>
+</div>
+
+<div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="Ảnh phóng to"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'expenses';
+  let entries = [];
+  let currentPhotoData = null;
+  const today = new Date();
+  let viewYear = today.getFullYear();
+  let viewMonth = today.getMonth(); // 0-indexed
+
+  const monthLabel = document.getElementById('monthLabel');
+  const ledgerEl = document.getElementById('ledger');
+  const stampWrap = document.getElementById('stampWrap');
+  const photoInput = document.getElementById('photoInput');
+  const btnCamera = document.getElementById('btnCamera');
+  const photoPreview = document.getElementById('photoPreview');
+  const photoPlaceholder = document.getElementById('photoPlaceholder');
+  const itemName = document.getElementById('itemName');
+  const itemPrice = document.getElementById('itemPrice');
+  const btnSubmit = document.getElementById('btnSubmit');
+  const labelDuy = document.getElementById('labelDuy');
+  const labelNghia = document.getElementById('labelNghia');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+
+  function fmtVND(n){
+    return Number(n||0).toLocaleString('vi-VN') + ' ₫';
+  }
+
+  function monthKey(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+
+  // --- real-time clock ---
+  const clockTimeEl = document.getElementById('clockTime');
+  const clockDateEl = document.getElementById('clockDate');
+  const weekdays = ['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+  function tickClock(){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    clockTimeEl.textContent = hh + ':' + mm + ':' + ss;
+    const dd = String(now.getDate()).padStart(2,'0');
+    const mo = String(now.getMonth()+1).padStart(2,'0');
+    clockDateEl.textContent = weekdays[now.getDay()] + ', ' + dd + '/' + mo + '/' + now.getFullYear();
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  async function loadEntries(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      entries = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      entries = [];
+    }
+    render();
+  }
+
+  async function saveEntries(){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false);
+    }catch(e){
+      alert('Không lưu được dữ liệu, vui lòng thử lại.');
+    }
+  }
+
+  // --- photo capture & compression ---
+  btnCamera.addEventListener('click', () => photoInput.click());
+  photoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 480;
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        currentPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+        photoPreview.src = currentPhotoData;
+        photoPreview.style.display = 'block';
+        photoPlaceholder.style.display = 'none';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // --- person toggle ---
+  document.querySelectorAll('input[name="person"]').forEach(r => {
+    r.addEventListener('change', () => {
+      labelDuy.classList.toggle('active', r.value === 'Duy' && r.checked || document.querySelector('input[value="Duy"]').checked);
+      labelDuy.classList.toggle('active', document.querySelector('input[value="Duy"]').checked);
+      labelNghia.classList.toggle('active', document.querySelector('input[value="Nghĩa"]').checked);
+    });
+  });
+
+  // --- submit ---
+  btnSubmit.addEventListener('click', async () => {
+    const rawInput = parseFloat(itemPrice.value);
+    if(!rawInput || rawInput <= 0){
+      alert('Vui lòng nhập số tiền hợp lệ (đơn vị nghìn đồng).');
+      return;
+    }
+    const price = rawInput * 1000;
+    const person = document.querySelector('input[name="person"]:checked').value;
+    const now = new Date();
+    const entry = {
+      id: 'e' + now.getTime() + Math.random().toString(36).slice(2,7),
+      date: now.toISOString(),
+      item: itemName.value.trim() || '(không ghi tên)',
+      price: price,
+      person: person,
+      photo: currentPhotoData
+    };
+    entries.push(entry);
+    await saveEntries();
+
+    // reset form
+    itemName.value = '';
+    itemPrice.value = '';
+    currentPhotoData = null;
+    photoPreview.style.display = 'none';
+    photoPlaceholder.style.display = 'flex';
+    photoInput.value = '';
+
+    // jump view to the entry's month
+    viewYear = now.getFullYear();
+    viewMonth = now.getMonth();
+    render();
+  });
+
+  // --- month navigation ---
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    viewMonth--;
+    if(viewMonth < 0){ viewMonth = 11; viewYear--; }
+    render();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    viewMonth++;
+    if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+    render();
+  });
+
+  // --- lightbox ---
+  lightbox.addEventListener('click', () => lightbox.classList.remove('show'));
+
+  function render(){
+    monthLabel.textContent = 'Tháng ' + (viewMonth+1) + ' / ' + viewYear;
+
+    const monthEntries = entries.filter(e => {
+      const d = new Date(e.date);
+      return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+    }).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    ledgerEl.innerHTML = '';
+    if(monthEntries.length === 0){
+      ledgerEl.innerHTML = '<div class="empty">Chưa có khoản chi nào trong tháng này.</div>';
+    } else {
+      monthEntries.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        const d = new Date(entry.date);
+        const dateStr = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+        const tagClass = entry.person === 'Duy' ? 'duy' : 'nghia';
+
+        row.innerHTML = `
+          ${entry.photo
+            ? `<img class="thumb" src="${entry.photo}" alt="${entry.item}">`
+            : `<div class="thumb-placeholder">—</div>`}
+          <div class="info">
+            <div class="item-name">${escapeHtml(entry.item)}</div>
+            <div class="date-tag">${dateStr} · <span class="tag ${tagClass}">${entry.person}</span></div>
+          </div>
+          <div class="price">${fmtVND(entry.price)}</div>
+          <button class="del" title="Xoá">✕</button>
+        `;
+
+        if(entry.photo){
+          row.querySelector('.thumb').addEventListener('click', () => {
+            lightboxImg.src = entry.photo;
+            lightbox.classList.add('show');
+          });
+        }
+        row.querySelector('.del').addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          if(confirm('Xoá khoản chi "' + entry.item + '"?')){
+            entries = entries.filter(x => x.id !== entry.id);
+            await saveEntries();
+            render();
+          }
+        });
+
+        ledgerEl.appendChild(row);
+      });
+    }
+
+    // stamp summary
+    const totalDuy = monthEntries.filter(e => e.person === 'Duy').reduce((s,e) => s + e.price, 0);
+    const totalNghia = monthEntries.filter(e => e.person === 'Nghĩa').reduce((s,e) => s + e.price, 0);
+    stampWrap.innerHTML = monthEntries.length === 0 ? '' : `
+      <div class="stamp">
+        <div class="lines">
+          <div><div class="who">DUY</div><div class="amt">${fmtVND(totalDuy)}</div></div>
+          <div><div class="who">NGHĨA</div><div class="amt">${fmtVND(totalNghia)}</div></div>
+        </div>
+        <div class="grand">Tổng cộng: ${fmtVND(totalDuy + totalNghia)}</div>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  loadEntries();
+})();
+</script>
+</body>
+</html>
