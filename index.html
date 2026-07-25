@@ -6,6 +6,8 @@
 <title>Sổ chi tiêu — Duy &amp; Nghĩa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --paper: #EDF2E9;
@@ -446,14 +448,27 @@
 
   <div class="stamp-wrap" id="stampWrap"></div>
 
-  <footer class="note">Dữ liệu được lưu tự động trên trình duyệt này. Ảnh được nén nhỏ để tiết kiệm dung lượng.</footer>
+  <footer class="note">Dữ liệu được lưu chung trên máy chủ, cả hai đều xem được của nhau. Khoản chi cũ hơn 2 tháng sẽ tự động bị xoá.</footer>
 </div>
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="Ảnh phóng to"></div>
 
 <script>
 (function(){
-  const STORAGE_KEY = 'expenses';
+  // --- Firebase setup ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyBeqpuLJhY6KaIjg8j28GwObhNZy6-WDDM",
+    authDomain: "so-chi-tieu-duy-nghia.firebaseapp.com",
+    projectId: "so-chi-tieu-duy-nghia",
+    storageBucket: "so-chi-tieu-duy-nghia.firebasestorage.app",
+    messagingSenderId: "148452743367",
+    appId: "1:148452743367:web:e3ee9fe23d9a0b5016c6e2"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const expensesRef = db.collection('expenses');
+  const AUTO_DELETE_MONTHS = 2;
+
   let entries = [];
   let currentPhotoData = null;
   const today = new Date();
@@ -500,22 +515,30 @@
   tickClock();
   setInterval(tickClock, 1000);
 
-  async function loadEntries(){
-    try{
-      const res = await window.storage.get(STORAGE_KEY, false);
-      entries = res && res.value ? JSON.parse(res.value) : [];
-    }catch(e){
-      entries = [];
-    }
-    render();
+  let unsubscribed = false;
+
+  function listenEntries(){
+    expensesRef.orderBy('date', 'desc').onSnapshot((snapshot) => {
+      entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      cleanupOldEntries();
+      render();
+    }, (err) => {
+      console.error(err);
+      if(!unsubscribed){
+        unsubscribed = true;
+        alert('Không kết nối được với dữ liệu chung. Kiểm tra lại kết nối mạng hoặc cấu hình Firebase.');
+      }
+    });
   }
 
-  async function saveEntries(){
-    try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false);
-    }catch(e){
-      alert('Không lưu được dữ liệu, vui lòng thử lại.');
-    }
+  function cleanupOldEntries(){
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - AUTO_DELETE_MONTHS);
+    entries.forEach(e => {
+      if(new Date(e.date) < cutoff){
+        expensesRef.doc(e.id).delete().catch(() => {});
+      }
+    });
   }
 
   // --- photo capture & compression ---
@@ -564,16 +587,22 @@
     const price = rawInput * 1000;
     const person = document.querySelector('input[name="person"]:checked').value;
     const now = new Date();
-    const entry = {
-      id: 'e' + now.getTime() + Math.random().toString(36).slice(2,7),
-      date: now.toISOString(),
-      item: itemName.value.trim() || '(không ghi tên)',
-      price: price,
-      person: person,
-      photo: currentPhotoData
-    };
-    entries.push(entry);
-    await saveEntries();
+
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Đang lưu...';
+    try{
+      await expensesRef.add({
+        date: now.toISOString(),
+        item: itemName.value.trim() || '(không ghi tên)',
+        price: price,
+        person: person,
+        photo: currentPhotoData
+      });
+    }catch(e){
+      alert('Không lưu được, kiểm tra lại kết nối mạng rồi thử lại.');
+    }
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = 'Ghi vào sổ';
 
     // reset form
     itemName.value = '';
@@ -586,7 +615,6 @@
     // jump view to the entry's month
     viewYear = now.getFullYear();
     viewMonth = now.getMonth();
-    render();
   });
 
   // --- month navigation ---
@@ -644,9 +672,11 @@
         row.querySelector('.del').addEventListener('click', async (ev) => {
           ev.stopPropagation();
           if(confirm('Xoá khoản chi "' + entry.item + '"?')){
-            entries = entries.filter(x => x.id !== entry.id);
-            await saveEntries();
-            render();
+            try{
+              await expensesRef.doc(entry.id).delete();
+            }catch(e){
+              alert('Không xoá được, kiểm tra lại kết nối mạng.');
+            }
           }
         });
 
@@ -674,7 +704,7 @@
     return d.innerHTML;
   }
 
-  loadEntries();
+  listenEntries();
 })();
 </script>
 </body>
