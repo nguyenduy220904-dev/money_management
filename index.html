@@ -76,58 +76,6 @@
     font-size: 22px;
     letter-spacing: 1px;
   }
-  .auth-bar{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap: 8px;
-    margin-bottom: 14px;
-    font-size: 11px;
-    color: var(--ink-soft);
-  }
-  .auth-bar button{
-    background:none;
-    border: none;
-    color: var(--ink-soft);
-    text-decoration: underline;
-    cursor: pointer;
-    font-family:'Courier Prime', monospace;
-    font-size: 11px;
-    padding: 2px 4px;
-  }
-  .auth-bar .signed-in{
-    color: var(--duy-ink);
-    font-weight: 700;
-  }
-  .login-form{
-    display:none;
-    justify-content:center;
-    gap: 8px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-  .login-form.show{ display:flex; }
-  .login-form input{
-    padding: 7px 9px;
-    border: 1px solid var(--paper-line);
-    border-radius: 4px;
-    font-family:'Courier Prime', monospace;
-    font-size: 12px;
-    background: #fff;
-    color: var(--ink);
-    width: 160px;
-  }
-  .login-form button{
-    background: var(--ink);
-    color: var(--paper);
-    border: none;
-    padding: 7px 12px;
-    border-radius: 4px;
-    font-family:'Courier Prime', monospace;
-    font-weight: 700;
-    font-size: 12px;
-    cursor: pointer;
-  }
 
   .month-nav{
     display:flex;
@@ -431,9 +379,82 @@
     border-radius: 6px;
   }
 
+  .pin-modal{
+    position: fixed; inset:0;
+    background: rgba(31,58,46,0.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .pin-modal.show{ display:flex; }
+  .pin-box{
+    background:#fff;
+    border-radius: 8px;
+    padding: 24px 22px;
+    width: 100%;
+    max-width: 280px;
+    text-align:center;
+    box-shadow: 0 10px 30px rgba(31,58,46,0.25);
+    border: 1px solid var(--paper-line);
+  }
+  .pin-box .pin-icon{
+    font-size: 26px;
+    margin-bottom: 8px;
+  }
+  .pin-box .pin-title{
+    font-family:'Zilla Slab', serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+  .pin-box input{
+    width: 100%;
+    text-align:center;
+    letter-spacing: 4px;
+    padding: 10px;
+    border: 1px solid var(--paper-line);
+    border-radius: 4px;
+    font-family:'Courier Prime', monospace;
+    font-size: 16px;
+    background: var(--paper);
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+  .pin-box input:focus{
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+  }
+  .pin-box .pin-actions{
+    display:flex;
+    gap: 8px;
+  }
+  .pin-box .pin-actions button{
+    flex: 1;
+    padding: 9px;
+    border-radius: 4px;
+    font-family:'Courier Prime', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--ink);
+  }
+  .pin-box .pin-cancel{
+    background: #fff;
+    color: var(--ink-soft);
+  }
+  .pin-box .pin-confirm{
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
   footer.note{
     text-align:center;
-    font-size: 15px;
+    font-size: 45px;
     color: var(--ink-soft);
     margin-top: 30px;
   }
@@ -505,6 +526,18 @@
 </div>
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="Ảnh phóng to"></div>
+
+<div class="pin-modal" id="pinModal">
+  <div class="pin-box">
+    <div class="pin-icon">🔒</div>
+    <div class="pin-title">Mã bảo mật</div>
+    <input type="password" id="pinInput" inputmode="numeric" placeholder="••••••••">
+    <div class="pin-actions">
+      <button class="pin-cancel" id="pinCancel" type="button">Hủy</button>
+      <button class="pin-confirm" id="pinConfirm" type="button">Xác nhận</button>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -686,6 +719,42 @@
   // --- lightbox ---
   lightbox.addEventListener('click', () => lightbox.classList.remove('show'));
 
+  // --- pin modal (thay cho prompt() xấu) ---
+  const pinModal = document.getElementById('pinModal');
+  const pinInput = document.getElementById('pinInput');
+  const pinCancelBtn = document.getElementById('pinCancel');
+  const pinConfirmBtn = document.getElementById('pinConfirm');
+
+  function askPin(){
+    return new Promise((resolve) => {
+      pinInput.value = '';
+      pinModal.classList.add('show');
+      setTimeout(() => pinInput.focus(), 50);
+
+      function onConfirm(){ cleanup(pinInput.value); }
+      function onCancel(){ cleanup(null); }
+      function onKey(e){
+        if(e.key === 'Enter'){ onConfirm(); }
+        if(e.key === 'Escape'){ onCancel(); }
+      }
+      function onOverlayClick(e){
+        if(e.target === pinModal){ onCancel(); }
+      }
+      function cleanup(result){
+        pinModal.classList.remove('show');
+        pinConfirmBtn.removeEventListener('click', onConfirm);
+        pinCancelBtn.removeEventListener('click', onCancel);
+        pinInput.removeEventListener('keydown', onKey);
+        pinModal.removeEventListener('click', onOverlayClick);
+        resolve(result);
+      }
+      pinConfirmBtn.addEventListener('click', onConfirm);
+      pinCancelBtn.addEventListener('click', onCancel);
+      pinInput.addEventListener('keydown', onKey);
+      pinModal.addEventListener('click', onOverlayClick);
+    });
+  }
+
   function render(){
     monthLabel.textContent = 'Tháng ' + (viewMonth+1) + ' / ' + viewYear;
 
@@ -728,7 +797,7 @@
         }
         row.querySelector('.del').addEventListener('click', async (ev) => {
           ev.stopPropagation();
-          const pin = prompt('Nhập mã để xoá khoản chi "' + entry.item + '":');
+          const pin = await askPin();
           if(pin === null) return;
           if(pin !== DELETE_PIN){
             alert('Sai mã, không thể xoá.');
