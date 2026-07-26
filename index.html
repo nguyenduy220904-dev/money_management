@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   :root{
     --paper: #EDF2E9;
@@ -724,8 +725,9 @@
 <div class="pin-modal" id="pinModal">
   <div class="pin-box">
     <div class="pin-icon">🔒</div>
-    <div class="pin-title">Mã bảo mật</div>
-    <input type="password" id="pinInput" inputmode="numeric" placeholder="••••••••">
+    <div class="pin-title">Đăng nhập</div>
+    <input type="email" id="authEmailInput" placeholder="Email" autocomplete="username" style="margin-bottom:10px;">
+    <input type="password" id="pinInput" placeholder="Mật khẩu" autocomplete="current-password">
     <div class="pin-actions">
       <button class="pin-cancel" id="pinCancel" type="button">Hủy</button>
       <button class="pin-confirm" id="pinConfirm" type="button">Xác nhận</button>
@@ -746,10 +748,10 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const auth = firebase.auth();
   const expensesRef = db.collection('expenses');
   const accessCollection = db.collection('access_requests');
   const AUTO_DELETE_MONTHS = 2;
-  const DELETE_PIN = '22092004';
 
   let entries = [];
   let currentPhotoData = null;
@@ -907,19 +909,21 @@
   // --- lightbox ---
   lightbox.addEventListener('click', () => lightbox.classList.remove('show'));
 
-  // --- pin modal (dùng chung cho xoá & xác nhận là Duy) ---
+  // --- login modal (email + mật khẩu Firebase Auth thật) ---
   const pinModal = document.getElementById('pinModal');
+  const authEmailInput = document.getElementById('authEmailInput');
   const pinInput = document.getElementById('pinInput');
   const pinCancelBtn = document.getElementById('pinCancel');
   const pinConfirmBtn = document.getElementById('pinConfirm');
 
-  function askPin(){
+  function askLogin(){
     return new Promise((resolve) => {
+      authEmailInput.value = '';
       pinInput.value = '';
       pinModal.classList.add('show');
-      setTimeout(() => pinInput.focus(), 50);
+      setTimeout(() => authEmailInput.focus(), 50);
 
-      function onConfirm(){ cleanup(pinInput.value); }
+      function onConfirm(){ cleanup({ email: authEmailInput.value.trim(), password: pinInput.value }); }
       function onCancel(){ cleanup(null); }
       function onKey(e){
         if(e.key === 'Enter'){ onConfirm(); }
@@ -933,12 +937,14 @@
         pinConfirmBtn.removeEventListener('click', onConfirm);
         pinCancelBtn.removeEventListener('click', onCancel);
         pinInput.removeEventListener('keydown', onKey);
+        authEmailInput.removeEventListener('keydown', onKey);
         pinModal.removeEventListener('click', onOverlayClick);
         resolve(result);
       }
       pinConfirmBtn.addEventListener('click', onConfirm);
       pinCancelBtn.addEventListener('click', onCancel);
       pinInput.addEventListener('keydown', onKey);
+      authEmailInput.addEventListener('keydown', onKey);
       pinModal.addEventListener('click', onOverlayClick);
     });
   }
@@ -993,9 +999,6 @@
     myAccessRef.onSnapshot((doc) => {
       const data = doc.data();
       if(!data) return;
-      isAdmin = !!data.isAdmin;
-
-      updateAdminFab();
 
       if(data.status === 'approved'){
         gateOverlay.classList.remove('show');
@@ -1027,21 +1030,30 @@
     }
   }
 
-  async function handleAdminLogin(){
-    const pin = await askPin();
-    if(pin === null) return;
-    if(pin !== DELETE_PIN){
-      alert('Sai mã.');
-      return;
-    }
-    try{
-      await myAccessRef.set({
+  // --- đăng nhập thật bằng Firebase Auth (chỉ Duy có tài khoản) ---
+  auth.onAuthStateChanged((user) => {
+    isAdmin = !!user;
+    updateAdminFab();
+    if(user){
+      myAccessRef.set({
         status: 'approved',
         isAdmin: true,
         updatedAt: new Date().toISOString()
-      }, { merge: true });
+      }, { merge: true }).catch(() => {});
+    }
+  });
+
+  async function handleAdminLogin(){
+    const cred = await askLogin();
+    if(cred === null) return;
+    if(!cred.email || !cred.password){
+      alert('Vui lòng nhập email và mật khẩu.');
+      return;
+    }
+    try{
+      await auth.signInWithEmailAndPassword(cred.email, cred.password);
     }catch(e){
-      alert('Có lỗi xảy ra, thử lại nhé.');
+      alert('Sai email hoặc mật khẩu.');
     }
   }
 
@@ -1055,21 +1067,7 @@
 
   adminFab.addEventListener('click', async () => {
     if(!isAdmin){
-      const pin = await askPin();
-      if(pin === null) return;
-      if(pin !== DELETE_PIN){
-        alert('Sai mã.');
-        return;
-      }
-      try{
-        await myAccessRef.set({
-          status: 'approved',
-          isAdmin: true,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      }catch(e){
-        alert('Có lỗi xảy ra, thử lại nhé.');
-      }
+      await handleAdminLogin();
       return;
     }
     openAdminPanel();
@@ -1179,16 +1177,25 @@
         }
         row.querySelector('.del').addEventListener('click', async (ev) => {
           ev.stopPropagation();
-          const pin = await askPin();
-          if(pin === null) return;
-          if(pin !== DELETE_PIN){
-            alert('Sai mã, không thể xoá.');
-            return;
+          if(!isAdmin){
+            const cred = await askLogin();
+            if(cred === null) return;
+            if(!cred.email || !cred.password){
+              alert('Vui lòng nhập email và mật khẩu.');
+              return;
+            }
+            try{
+              await auth.signInWithEmailAndPassword(cred.email, cred.password);
+            }catch(e){
+              alert('Sai email hoặc mật khẩu.');
+              return;
+            }
           }
+          if(!confirm('Xoá khoản chi "' + entry.item + '"?')) return;
           try{
             await expensesRef.doc(entry.id).delete();
           }catch(e){
-            alert('Không xoá được, kiểm tra lại kết nối mạng.');
+            alert('Không xoá được — có thể do chưa đăng nhập đúng quyền hoặc mất kết nối mạng.');
           }
         });
 
