@@ -505,6 +505,18 @@
   .gate-admin-link{
     cursor: pointer;
   }
+  .gate-retry-btn{
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-family:'Courier Prime', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .gate-retry-btn:hover{ opacity: 0.88; }
 
   /* --- admin fab & panel --- */
   .admin-fab{
@@ -627,6 +639,7 @@
     <div class="gate-title" id="gateTitle">Đang chờ Duy duyệt truy cập</div>
     <div class="gate-subtitle" id="gateSubtitle">Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được <span class="gate-admin-link" id="gateAdminLink">Duy</span> duyệt, không cần tải lại.</div>
     <div class="gate-dots" id="gateDots"><span></span><span></span><span></span></div>
+    <button class="gate-retry-btn" id="gateRetryBtn" type="button" style="display:none;">Gửi yêu cầu lại</button>
   </div>
 </div>
 
@@ -949,6 +962,7 @@
   const gateTitle = document.getElementById('gateTitle');
   const gateSubtitle = document.getElementById('gateSubtitle');
   const gateDots = document.getElementById('gateDots');
+  const gateRetryBtn = document.getElementById('gateRetryBtn');
   const gateAdminLink = document.getElementById('gateAdminLink');
   const adminFab = document.getElementById('adminFab');
   const adminPanel = document.getElementById('adminPanel');
@@ -991,12 +1005,14 @@
         gateTitle.textContent = 'Truy cập bị từ chối';
         gateSubtitle.innerHTML = '<span class="gate-admin-link" id="gateAdminLink">Duy</span> chưa cho phép thiết bị này truy cập.';
         gateDots.style.display = 'none';
+        gateRetryBtn.style.display = 'inline-block';
       } else {
         gateOverlay.classList.add('show');
         gateIcon.textContent = '🔒';
         gateTitle.textContent = 'Đang chờ Duy duyệt truy cập';
         gateSubtitle.innerHTML = 'Yêu cầu của bạn đã được gửi. Trang sẽ tự mở ra khi được <span class="gate-admin-link" id="gateAdminLink">Duy</span> duyệt, không cần tải lại.';
         gateDots.style.display = 'flex';
+        gateRetryBtn.style.display = 'none';
       }
     });
   }
@@ -1103,6 +1119,21 @@
         });
     });
   }
+
+  gateRetryBtn.addEventListener('click', async () => {
+    gateRetryBtn.disabled = true;
+    gateRetryBtn.textContent = 'Đang gửi...';
+    try{
+      await myAccessRef.set({
+        status: 'pending',
+        requestedAt: new Date().toISOString()
+      }, { merge: true });
+    }catch(e){
+      alert('Không gửi được yêu cầu, kiểm tra lại kết nối mạng.');
+    }
+    gateRetryBtn.disabled = false;
+    gateRetryBtn.textContent = 'Gửi yêu cầu lại';
+  });
 
   ensureAccessDoc().then(watchAccess);
 
